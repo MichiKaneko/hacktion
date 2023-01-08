@@ -1,11 +1,13 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 
 	"github.com/spf13/cobra"
 )
@@ -14,27 +16,32 @@ import (
 var hackCmd = &cobra.Command{
 	Use:   "hack",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  `test`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("hack called")
+		postcode, err := cmd.Flags().GetString("post")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		endpoint := "https://zipcloud.ibsnet.co.jp/api/search?zipcode=" + postcode
+
+		res, err := http.Get(endpoint)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			log.Fatal(res.Status)
+		}
+		body, _ := io.ReadAll(res.Body)
+		fmt.Print(string(body))
+
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(hackCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// hackCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// hackCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	hackCmd.Flags().StringP("post", "p", "", "cache post")
 }
