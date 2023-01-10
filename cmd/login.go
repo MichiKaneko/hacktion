@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/MichiKaneko/hacktion/config"
 	"github.com/spf13/cobra"
 )
 
@@ -18,16 +19,22 @@ type Login struct {
 	Password string `json:"password"`
 }
 
+type Token struct {
+	Token string `json:"token"`
+	User  User   `json:"user"`
+}
+
+type User struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  `A long description of your command.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		email, err := cmd.Flags().GetString("email")
 		if err != nil {
@@ -38,7 +45,7 @@ to quickly create a Cobra application.`,
 			fmt.Println(err)
 		}
 
-		endpoint := "https://hacktion.app.mode-co.jp/api/v1/login"
+		endpoint := "http://localhost:8080/api/token"
 
 		login := Login{
 			Email:    email,
@@ -69,9 +76,29 @@ to quickly create a Cobra application.`,
 		fmt.Println("response Status:", resp.Status)
 
 		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var token Token
+		json.Unmarshal(body, &token)
+
+		cfg, err := config.Load()
+		if err != nil {
+			fmt.Println(err)
+		}
+		cfg.User.Token = token.Token
+		cfg.User.Email = token.User.Email
+		cfg.User.Name = token.User.Name
+		cfg.User.ID = token.User.ID
+
+		err = config.Save(cfg)
+		if err != nil {
+			fmt.Println(err)
+		}
 
 		fmt.Println("response Body:", string(body))
-
+		fmt.Println("token:", string(token.Token))
 	},
 }
 
